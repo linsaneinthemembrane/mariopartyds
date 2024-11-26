@@ -70,7 +70,7 @@ class ImageProcessor:
 
 if __name__ == "__main__":
     # Example usage
-    processor = ImageProcessor("DeSmuME")  # Replace with your emulator window title
+    processor = ImageProcessor("melonDS emulator")  # Replace with your emulator window title
     result_queue = processor.run()
 
     try:
