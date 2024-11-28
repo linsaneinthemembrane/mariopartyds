@@ -58,6 +58,7 @@ The decision to use a stack data structure was inspired by:
 * Run the script
 * Press 'q' to quit
 ### Installation
+* You will need a DS emulator and you will need to experiment with finding the center pixels of each button icon
 ```pip install opencv-python numpy keyboard mss pywin32```
 ### License
 MIT License
