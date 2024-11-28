@@ -1,84 +1,46 @@
 import win32gui
-import win32ui
 import win32con
+from mss import mss
 import numpy as np
-from multiprocessing import Process, Queue
-import time
 
-class ImageProcessor:
-    def __init__(self, window_name):
-        self.hwnd = win32gui.FindWindow(None, window_name)
-        if not self.hwnd:
-            raise Exception(f'Window not found: {window_name}')
-        self.capture_interval = 0.05  # 50ms interval, adjust if needed
-        self.processing_queue = Queue(maxsize=10)
-        self.result_queue = Queue()
-        self.running = True
+class GameCapture:
+    def __init__(self):
+        self.sct = mss()
+        self.window_title = "[60/60] melonDS 1.0 RC" #[60/60] 
 
-    def capture_window(self):
-        # Get window dimensions
-        left, top, right, bot = win32gui.GetWindowRect(self.hwnd)
-        w = right - left
-        h = bot - top
+    def bring_window_to_foreground(self, hwnd):
+        try:
+            # Bring the window to the foreground
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            win32gui.SetForegroundWindow(hwnd)
+        except Exception as e:
+            print(f"Error bringing window to foreground: {e}")
 
-        # Create device context
-        wDC = win32gui.GetWindowDC(self.hwnd)
-        dcObj = win32ui.CreateDCFromHandle(wDC)
-        cDC = dcObj.CreateCompatibleDC()
-        dataBitMap = win32ui.CreateBitmap()
-        dataBitMap.CreateCompatibleBitmap(dcObj, w, h)
-        cDC.SelectObject(dataBitMap)
-        cDC.BitBlt((0, 0), (w, h), dcObj, (0, 0), win32con.SRCCOPY)
+    def get_window_geometry(self):
+        hwnd = win32gui.FindWindow(None, self.window_title)
 
-        # Convert to numpy array
-        signedIntsArray = dataBitMap.GetBitmapBits(True)
-        img = np.frombuffer(signedIntsArray, dtype='uint8')
-        img.shape = (h, w, 4)
+        if hwnd:
+            # Bring emulator to foreground
+            self.bring_window_to_foreground(hwnd)
 
-        # Clean up resources
-        dcObj.DeleteDC()
-        cDC.DeleteDC()
-        win32gui.ReleaseDC(self.hwnd, wDC)
-        win32gui.DeleteObject(dataBitMap.GetHandle())
+            # Get the current window rectangle
+            rect = win32gui.GetWindowRect(hwnd)
+            x = rect[0]
+            y = rect[1]
+            width = rect[2] - x
+            height = rect[3] - y
 
-        return img
+            # Debug: Print window geometry
+            return {"left": x, "top": y, "width": width, "height": height}
 
-    def capture_images(self):
-        while self.running:
-            screenshot = self.capture_window()
-            if not self.processing_queue.full():
-                self.processing_queue.put(screenshot)
-            time.sleep(self.capture_interval)
+        # Fallback to capture the primary monitor
+        print("Emulator window not found. Capturing full monitor.")
+        return self.sct.monitors[1]
 
-    def process_images(self):
-        while self.running:
-            if not self.processing_queue.empty():
-                screenshot = self.processing_queue.get()
-                self.result_queue.put(screenshot)
+    def capture_frame(self):
+        geometry = self.get_window_geometry()
+        screenshot = self.sct.grab(geometry)
 
-    def run(self):
-        capture_process = Process(target=self.capture_images)
-        process_process = Process(target=self.process_images)
-
-        capture_process.start()
-        process_process.start()
-
-        return self.result_queue
-
-    def stop(self):
-        self.running = False
-
-if __name__ == "__main__":
-    # Example usage
-    processor = ImageProcessor("melonDS emulator")  # Replace with your emulator window title
-    result_queue = processor.run()
-
-    try:
-        while True:
-            if not result_queue.empty():
-                frame = result_queue.get()
-                # You can manually inspect frame data here
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        processor.stop()
-        print("Image processing stopped.")
+        # Convert to a numpy array
+        frame = np.array(screenshot)
+        return frame
