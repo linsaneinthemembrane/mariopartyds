@@ -12,7 +12,7 @@ class DominoEffect:
             'first': {'top': 851, 'left': 554, 'width': 45, 'height': 52},
             'second': {'top': 890, 'left': 640, 'width': 45, 'height': 52}
         }
-        
+        # Grabbed the average RBG values for each button icon within the two windows
         self.button_colors = {
             'A': [
                 np.array([191, 213, 225]),
@@ -27,7 +27,8 @@ class DominoEffect:
         }
                 
         self.initialize_windows()
-    
+
+    # Set the three windows to appear
     def initialize_windows(self):
         cv2.namedWindow('Full Window', cv2.WINDOW_NORMAL)
         cv2.namedWindow('First Button Region', cv2.WINDOW_NORMAL)
@@ -48,7 +49,8 @@ class DominoEffect:
     
     def get_average_color(self, region):
         return np.mean(region, axis=(0,1)).astype(int)
-    
+
+    # detect button in window based on dictionary
     def find_button_by_rgb(self, detected_rgb):
         def rgb_distance(rgb1, rgb2):
             return np.linalg.norm(rgb1 - rgb2)
@@ -78,7 +80,7 @@ class DominoEffect:
             try:
                 if button == 'A':
                     keyboard.press('a')
-                    time.sleep(0.05)
+                    time.sleep(0.05) # Experimented with time values, found 0.05 to be the best
                     keyboard.release('a')
                 elif button == 'B':
                     keyboard.press('b')
@@ -120,7 +122,7 @@ class DominoEffect:
             # Process buttons using stack
             button_to_press = self.process_buttons(first_button, second_button)
             
-            if current_time - last_press_time >= 0.07:
+            if current_time - last_press_time >= 0.07: # can increase this based on your device capabilities, but I found that I couldn't go under 0.07
                 self.press_button(button_to_press)
                 last_press_time = current_time
             
@@ -132,7 +134,7 @@ class DominoEffect:
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             
-            time.sleep(1/30)
+            time.sleep(1/30) # 30 fps
         
         cv2.destroyAllWindows()
 
