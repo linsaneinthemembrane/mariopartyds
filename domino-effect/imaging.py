@@ -6,7 +6,7 @@ import numpy as np
 class GameCapture:
     def __init__(self):
         self.sct = mss()
-        self.window_title = "[60/60] melonDS 1.0 RC" #[60/60] 
+        self.window_title = "[60/60] melonDS 1.0 RC" #name of emulator window
 
     def bring_window_to_foreground(self, hwnd):
         try:
