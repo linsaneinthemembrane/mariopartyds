@@ -1,9 +1,8 @@
 # Mario Party DS Domino Effect Bot
 A Python-based bot that automatically plays the Domino Effect minigame from Mario Party DS by detecting and responding to on-screen button prompts.
 
-```html
-<iframe width="560" height="315" src="https://www.youtube.com/embed/QWJFMsfa0ag?si=2WWGxXLV02MNITmP" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-```
+### Demo Video
+[![Mario Party DS Domino Effect Bot Demo](https://img.youtube.com/vi/QWJFMsfa0ag/maxresdefault.jpg)](https://www.youtube.com/watch?v=QWJFMsfa0ag)
 
 ## Overview
 This bot uses computer vision to detect button prompts (A, B, X, Y) appearing in the bottom-middle of the screen and automatically presses the corresponding keys to play the Domino Effect minigame.
