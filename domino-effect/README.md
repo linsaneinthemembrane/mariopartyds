@@ -23,7 +23,6 @@ The decision to use a stack data structure was inspired by:
 * Recent LeetCode problem-solving experience
 * The natural LIFO (Last In, First Out) pattern of the game's button sequence
 * Buttons appear right-to-left in the game, matching stack's natural order
-* Efficient O(1) operations for adding and removing buttons
 ## Key Challenges Overcome
 1. Window Detection
 * Initially captured full desktop instead of emulator window
@@ -52,6 +51,8 @@ The decision to use a stack data structure was inspired by:
 * NumPy
 * MSS for screen capture
 * Win32GUI
+### Notes
+* Despite implementing the stack, it did not turn out to be faster than a single window approach
 ### Usage
 * Start melonDS emulator with Mario Party DS
 * Navigate to Domino Effect minigame
