@@ -56,3 +56,4 @@ The decision to use a stack data structure was inspired by:
 ### Installation
 ```pip install opencv-python numpy keyboard mss pywin32```
 ### License
+MIT License
