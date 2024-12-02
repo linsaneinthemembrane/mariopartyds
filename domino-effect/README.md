@@ -32,8 +32,7 @@ The decision to use a stack data structure was inspired by:
 * Solved by storing multiple RGB values per button type
 3. Input Registration
 * Game wasn't recognizing keyboard inputs initially
-* Resolved by switching from arrow keys to direct button mapping (A, B, X, Y)
-* Added proper timing between button presses (0.07s intervals)
+* Added proper timing between button presses (0.05s intervals)
 4. Sequence Management
 * Evolved from single button detection to stack-based sequence tracking
 * Implemented deque with maxlen for efficient button history management
