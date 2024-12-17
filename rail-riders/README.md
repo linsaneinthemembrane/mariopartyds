@@ -19,3 +19,18 @@ The automation leverages several techniques:
 2. **Keyboard Input Detection**: Utilizing the `keyboard` library to listen for an emergency exit key.
 3. **Window Management**: Accessing and activating the emulator window using `pygetwindow` to ensure the automation interacts with the correct application.
 4. **Timing Adjustments**: Experimenting with different delays between actions to find optimal swipe speed and responsiveness.
+
+## Getting Started
+
+To run this project, ensure you have Python installed along with the required libraries:
+
+```pip install keyboard pyautogui pygetwindow```
+
+Once everything is set up, simply run the script while your emulator is open and focused on the game.
+
+## Experimentation
+
+Feel free to experiment with different values for `gui.PAUSE` and swipe duration in order to achieve better performance based on your system's capabilities and emulator settings.
+
+### License
+MIT License
