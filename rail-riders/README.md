@@ -4,7 +4,7 @@ This project automates Rail Riders, where the player must swipe from the bottom 
 
 ### Demo Video
 [![Mario Party DS Rail Riders Demo](https://img.youtube.com/vi/IVxGimlQ3eY/maxresdefault.jpg)](https://youtu.be/IVxGimlQ3eY)
-Here is a quick demo, unfortunately, running both the recording software and vscode hurt the performance, but running on it's own I got the high score of 999.9m.
+Here is a quick demo; unfortunately, running both the recording software and vscode hurt the performance, but running on its own, I got the highest score of 999.9m.
 
 ## Features
 
