@@ -3,7 +3,7 @@
 This project automates Rail Riders, where the player must swipe from the bottom to the top of the lower screen as quickly as possible. The automation is achieved using Python and several libraries to simulate mouse movements and keyboard inputs.
 
 ### Demo Video
-[![Mario Party DS Rail Riders Demo](https://www.youtube.com/embed/IVxGimlQ3eY?si=K6AjJIrMrVddgGez)]
+[![Mario Party DS Rail Riders Demo](https://img.youtube.com/vi/IVxGimlQ3eY/maxresdefault.jpg)](https://youtu.be/IVxGimlQ3eY)
 
 ## Features
 
