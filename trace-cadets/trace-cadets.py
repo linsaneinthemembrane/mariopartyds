@@ -34,13 +34,24 @@ class ShapeProperties:
         # Set grid cells
         self.grid_cells = (round(w / 100), round(h / 100))
 
+    def get_top_middle_point(self):
+        """Get the top-middle point of the shape"""
+        x, y, w, h = cv2.boundingRect(self.contour)
+        return (x + w//2, y)
+
+    def get_shape_type(self):
+        """Determine if shape is a triangle based on approximated corners"""
+        epsilon = 0.1 * cv2.arcLength(self.contour, True)
+        approx = cv2.approxPolyDP(self.contour, epsilon, True)
+        return len(approx)
+
 class ShapeTracer:
     def __init__(self):
         self.window_name = "[60/60] melonDS 1.0 RC"
         self.grid_width = 3
         self.grid_height = 2
         self.grid_cell_size = 100
-        self.grid_offset_x = 205
+        self.grid_offset_x = 210
         self.grid_offset_y = 225
         self.cell_size = 165
         
@@ -76,9 +87,6 @@ class ShapeTracer:
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         blue_mask = cv2.inRange(hsv, self.blue_lower, self.blue_upper)
         
-        kernel = np.ones((3,3), np.uint8)
-        blue_mask = cv2.morphologyEx(blue_mask, cv2.MORPH_CLOSE, kernel)
-        
         contours, hierarchy = cv2.findContours(
             blue_mask, 
             cv2.RETR_TREE, 
@@ -88,25 +96,18 @@ class ShapeTracer:
         shapes = []
         if hierarchy is not None:
             hierarchy = hierarchy[0]
-            
             for i, (cnt, hier) in enumerate(zip(contours, hierarchy)):
                 if hier[3] != -1:
                     area = cv2.contourArea(cnt)
                     if area < 100:
                         continue
-                    
-                    shape_props = ShapeProperties(cnt)
-                    epsilon = 0.03 * cv2.arcLength(cnt, True)
-                    approx = cv2.approxPolyDP(cnt, epsilon, True)
-                    
                     shapes.append({
                         'contour': cnt,
-                        'properties': shape_props,
-                        'approx': approx,
-                        'area': area
+                        'properties': ShapeProperties(cnt),
+                        'area': area,
                     })
-        
         return sorted(shapes, key=lambda x: x['area'], reverse=True)
+
 
     def scale_contour(self, contour: np.ndarray, scale_factor: float) -> np.ndarray:
         M = cv2.moments(contour)
@@ -114,17 +115,11 @@ class ShapeTracer:
             cx = int(M['m10']/M['m00'])
             cy = int(M['m01']/M['m00'])
             
-            # Ensure contour has correct shape (N,1,2)
             contour = contour.reshape(-1, 1, 2)
-            
             scaled_contour = contour.astype(np.float32)
             scaled_contour -= [cx, cy]
             scaled_contour *= scale_factor
             scaled_contour += [cx, cy]
-            
-            # Force shape closure
-            first_point = scaled_contour[0].reshape(1, 1, 2)
-            scaled_contour = np.concatenate([scaled_contour, first_point], axis=0)
             
             return scaled_contour.astype(np.int32)
         return contour
@@ -205,17 +200,11 @@ class ShapeTracer:
         window_x = emulator.left
         window_y = emulator.top + (emulator.height // 2)
         
-        props = shape['properties']
-        # All shapes should start from rightmost position
-        grid_x = 1  # Always start from rightmost column
-        grid_y = 0  # Always start from top row
+        # Calculate the exact middle of the grid cell
+        cell_center_x = window_x + self.grid_offset_x + (grid_x * self.cell_size) + (self.cell_size // 2)
+        cell_top_y = window_y + self.grid_offset_y
         
-        # Calculate screen coordinates based on grid position
-        screen_x = window_x + self.grid_offset_x + (grid_x * self.cell_size)
-        screen_y = window_y + self.grid_offset_y
-        
-        return (screen_x, screen_y)
-
+        return (cell_center_x, cell_top_y)
 
 
 
@@ -241,43 +230,78 @@ class ShapeTracer:
 
 
     def generate_trace_points(self, emulator, shape: Dict, grid_x: int, grid_y: int) -> List[Tuple[int, int]]:
+        """
+        Generate trace points starting at the top-middle of the shape and trace counterclockwise.
+        """
         contour = shape['contour']
+        scaled_contour = self.scale_contour(contour, 3.3)
         
-        # Scale contour before calculating position
-        scaled_contour = self.scale_contour(contour, 3.22)
+        # Get exact grid cell center
+        grid_start_x, grid_start_y = self.calculate_grid_position(emulator, shape, grid_x, grid_y)
         
-        # Get start position in emulator window
-        start_x, start_y = self.calculate_grid_position(emulator, shape, grid_x, grid_y)
+        # Find the top-middle point of the shape
+        x, y, w, h = cv2.boundingRect(scaled_contour)
+        shape_top_middle = (x + w//2, y)
         
-        # Generate points relative to emulator window
+        # Calculate offsets to align shape's top-middle with grid's top-middle
+        offset_x = grid_start_x - shape_top_middle[0]
+        offset_y = grid_start_y - y
+        
+        # Reorder contour to start from top middle
+        reordered_contour = self.reorder_contour_points(scaled_contour, shape_top_middle)
+        
         trace_points = []
-        for point in scaled_contour:
-            # Adjust point calculation to match preview
-            x = start_x + 15 + (point[0][0] - scaled_contour[0][0][0])
-            y = start_y + 15 + (point[0][1] - scaled_contour[0][0][1])
-            trace_points.append((x, y))
+        for point in reordered_contour:
+            adjusted_x = int(point[0][0] + offset_x)
+            adjusted_y = int(point[0][1] + offset_y)
+            trace_points.append((adjusted_x, adjusted_y))
         
-        return trace_points
+        trace_points.append(trace_points[0])
+        return self.add_intermediate_points(trace_points)
 
+    def find_top_middle_index(self, contour):
+        """Find the index of the top-middle point in the contour."""
+        x, y, w, h = cv2.boundingRect(contour)
+        top_middle = (x + w // 2, y)
+
+        distances = [
+            np.linalg.norm(np.array([point[0][0], point[0][1]]) - np.array(top_middle))
+            for point in contour
+        ]
+        return np.argmin(distances)
+
+    def reorder_contour_points(self, contour: np.ndarray, start_point: Tuple[int, int]) -> np.ndarray:
+        """Reorder contour points to start from the top-middle point"""
+        # Find the topmost center point
+        x, y, w, h = cv2.boundingRect(contour)
+        top_middle = (x + w//2, y)
+        
+        # Find the point closest to the top middle
+        distances = [np.linalg.norm(np.array([point[0][0] - top_middle[0], 
+                                            point[0][1] - top_middle[1]]))
+                    for point in contour]
+        start_idx = np.argmin(distances)
+        
+        # Reorder the contour to start from this point
+        return np.roll(contour, -start_idx, axis=0)
 
     def trace_shape(self, emulator, shape: Dict, grid_x: int, grid_y: int):
         """Execute the tracing movement with more natural motion"""
+        print("Starting trace")  # Debug print
         trace_points = self.generate_trace_points(emulator, shape, grid_x, grid_y)
-        
-        # Move to start position without clicking
-        gui.moveTo(trace_points[0][0], trace_points[0][1])        
-        # Start drawing
+        if not trace_points:
+            print("No trace points generated")
+            return
+            
+        print(f"Moving to start point: {trace_points[0]}")  # Debug print
+        gui.moveTo(trace_points[0][0], trace_points[0][1])
         gui.mouseDown()
         
-        # Trace with slower, more natural movement
         for point in trace_points[1:]:
-            gui.moveTo(point[0], point[1], duration=0.1)  # Slower movement
-        
-        # Ensure we return to start point
-        gui.moveTo(trace_points[0][0], trace_points[0][1], duration=0.1)
-        time.sleep(0.1)  # Pause before releasing
+            gui.moveTo(point[0], point[1])
         
         gui.mouseUp()
+        print("Trace complete")  # Debug print
 
 
 
@@ -308,6 +332,7 @@ class ShapeTracer:
             
             if key.is_pressed('t'):
                 if available_shapes:
+                    print(f"Found {len(available_shapes)} shapes")  # Debug print
                     shape = available_shapes[0]
                     grid_x = int(shape['properties'].grid_cells[0])
                     grid_y = int(shape['properties'].grid_cells[1])
